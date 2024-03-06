@@ -40,16 +40,17 @@ private:
     photospline::splinetable<> differential_cross_section_;
     photospline::splinetable<> total_cross_section_;
 
+    double hnl_mass_;
+    std::vector<double> dipole_coupling_;  // d_e, d_mu, d_tau
+    double target_mass_;
+    double minimum_Q2_;
+
     std::vector<dataclasses::InteractionSignature> signatures_;
     std::set<LI::dataclasses::Particle::ParticleType> primary_types_;
     std::set<LI::dataclasses::Particle::ParticleType> target_types_;
     std::map<LI::dataclasses::Particle::ParticleType, std::vector<LI::dataclasses::Particle::ParticleType>> targets_by_primary_types_;
     std::map<std::pair<LI::dataclasses::Particle::ParticleType, LI::dataclasses::Particle::ParticleType>, std::vector<dataclasses::InteractionSignature>> signatures_by_parent_types_;
 
-    double target_mass_;
-    double hnl_mass_;
-    std::vector<double> dipole_coupling_;  // d_e, d_mu, d_tau
-    double minimum_Q2_;
 
     double unit;
 

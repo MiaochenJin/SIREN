@@ -22,7 +22,7 @@ void register_DipoleDISFromSpline(pybind11::module_ & m) {
 
     dipoledisfromspline
         .def(init<>())
-        .def(init<std::vector<char>, std::vector<char>, int, double, double, std::set<LI::dataclasses::ParticleType>, std::set<LI::dataclasses::ParticleType>, std::string>(),
+        .def(init<std::vector<char>, std::vector<char>, double, std::vector<double>, double, double, std::set<LI::dataclasses::ParticleType>, std::set<LI::dataclasses::ParticleType>, std::string>(),
                 arg("total_xs_data"),
                 arg("differential_xs_data"),
                 arg("hnl_mass"),
@@ -32,7 +32,7 @@ void register_DipoleDISFromSpline(pybind11::module_ & m) {
                 arg("primary_types"),
                 arg("target_types"),
                 arg("units") = std::string("cm"))
-        .def(init<std::vector<char>, std::vector<char>, int, double, double, std::vector<LI::dataclasses::ParticleType>, std::vector<LI::dataclasses::ParticleType>, std::string>(),
+        .def(init<std::vector<char>, std::vector<char>, double, std::vector<double>, double, double, std::vector<LI::dataclasses::ParticleType>, std::vector<LI::dataclasses::ParticleType>, std::string>(),
                 arg("total_xs_data"),
                 arg("differential_xs_data"),
                 arg("hnl_mass"),
@@ -42,7 +42,7 @@ void register_DipoleDISFromSpline(pybind11::module_ & m) {
                 arg("primary_types"),
                 arg("target_types"),
                 arg("units") = std::string("cm"))
-        .def(init<std::string, std::string, int, double, double, std::set<LI::dataclasses::ParticleType>, std::set<LI::dataclasses::ParticleType>, std::string>(),
+        .def(init<std::string, std::string, double, std::vector<double>, double, double, std::set<LI::dataclasses::ParticleType>, std::set<LI::dataclasses::ParticleType>, std::string>(),
                 arg("total_xs_filename"),
                 arg("differential_xs_filename"),
                 arg("hnl_mass"),
@@ -52,7 +52,7 @@ void register_DipoleDISFromSpline(pybind11::module_ & m) {
                 arg("primary_types"),
                 arg("target_types"),
                 arg("units") = std::string("cm"))
-        .def(init<std::string, std::string, std::set<LI::dataclasses::ParticleType>, std::set<LI::dataclasses::ParticleType>, std::string>(),
+        .def(init<std::string, std::string, double, std::vector<double>, std::set<LI::dataclasses::ParticleType>, std::set<LI::dataclasses::ParticleType>, std::string>(),
                 arg("total_xs_filename"),
                 arg("differential_xs_filename"),
                 arg("hnl_mass"),
@@ -60,7 +60,7 @@ void register_DipoleDISFromSpline(pybind11::module_ & m) {
                 arg("primary_types"),
                 arg("target_types"),
                 arg("units") = std::string("cm"))
-        .def(init<std::string, std::string, int, double, double, std::vector<LI::dataclasses::ParticleType>, std::vector<LI::dataclasses::ParticleType>, std::string>(),
+        .def(init<std::string, std::string, double, std::vector<double>, double, double, std::vector<LI::dataclasses::ParticleType>, std::vector<LI::dataclasses::ParticleType>, std::string>(),
                 arg("total_xs_filename"),
                 arg("differential_xs_filename"),
                 arg("hnl_mass"),
@@ -70,7 +70,7 @@ void register_DipoleDISFromSpline(pybind11::module_ & m) {
                 arg("primary_types"),
                 arg("target_types"),
                 arg("units") = std::string("cm"))
-        .def(init<std::string, std::string, std::vector<LI::dataclasses::ParticleType>, std::vector<LI::dataclasses::ParticleType>, std::string>(),
+        .def(init<std::string, std::string, double, std::vector<double>, std::vector<LI::dataclasses::ParticleType>, std::vector<LI::dataclasses::ParticleType>, std::string>(),
                 arg("total_xs_filename"),
                 arg("differential_xs_filename"),
                 arg("hnl_mass"),

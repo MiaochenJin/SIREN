@@ -123,6 +123,69 @@ bool DipoleDISFromSpline::equal(CrossSection const & other) const {
             x->total_cross_section_);
 }
 
+void DipoleDISFromSpline::LoadFromFile(std::string dd_crossSectionFile, std::string total_crossSectionFile) {
+
+    differential_cross_section_ = photospline::splinetable<>(dd_crossSectionFile.c_str());
+
+    if(differential_cross_section_.get_ndim()!=3 && differential_cross_section_.get_ndim()!=2)
+        throw std::runtime_error("cross section spline has " + std::to_string(differential_cross_section_.get_ndim())
+                + " dimensions, should have either 3 (log10(E), log10(x), log10(y)) or 2 (log10(E), log10(y))");
+
+    total_cross_section_ = photospline::splinetable<>(total_crossSectionFile.c_str());
+
+    if(total_cross_section_.get_ndim() != 1)
+        throw std::runtime_error("Total cross section spline has " + std::to_string(total_cross_section_.get_ndim())
+                + " dimensions, should have 1, log10(E)");
+}
+
+void DipoleDISFromSpline::LoadFromMemory(std::vector<char> & differential_data, std::vector<char> & total_data) {
+    differential_cross_section_.read_fits_mem(differential_data.data(), differential_data.size());
+    total_cross_section_.read_fits_mem(total_data.data(), total_data.size());
+}
+
+void DipoleDISFromSpline::ReadParamsFromSplineTable() {
+    // returns true if successfully read target mass
+    bool mass_good = differential_cross_section_.read_key("TARGETMASS", target_mass_);
+    // returns true if successfully read interaction type
+    int interaction_type_ = 0;
+    bool int_good = differential_cross_section_.read_key("INTERACTION", interaction_type_);
+    // returns true if successfully read minimum Q2
+    bool q2_good = differential_cross_section_.read_key("Q2MIN", minimum_Q2_);
+
+    if(!int_good) {
+        // assume DIS to preserve compatability with previous versions
+        interaction_type_ = 1;
+    }
+
+    if(!q2_good) {
+        // assume 1 GeV^2
+        minimum_Q2_ = 1;
+    }
+
+    if(!mass_good) {
+        if(int_good) {
+            if(interaction_type_ == 1 or interaction_type_ == 2) {
+                target_mass_ = (LI::dataclasses::isLepton(LI::dataclasses::ParticleType::PPlus)+
+                        LI::dataclasses::isLepton(LI::dataclasses::ParticleType::Neutron))/2;
+            } else if(interaction_type_ == 3) {
+                target_mass_ = LI::dataclasses::isLepton(LI::dataclasses::ParticleType::EMinus);
+            } else {
+                throw std::runtime_error("Logic error. Interaction type is not 1, 2, or 3!");
+            }
+
+        } else {
+            if(differential_cross_section_.get_ndim() == 3) {
+                target_mass_ = (LI::dataclasses::isLepton(LI::dataclasses::ParticleType::PPlus)+
+                        LI::dataclasses::isLepton(LI::dataclasses::ParticleType::Neutron))/2;
+            } else if(differential_cross_section_.get_ndim() == 2) {
+                target_mass_ = LI::dataclasses::isLepton(LI::dataclasses::ParticleType::EMinus);
+            } else {
+                throw std::runtime_error("Logic error. Spline dimensionality is not 2, or 3!");
+            }
+        }
+    }
+}
+
 void DipoleDISFromSpline::InitializeSignatures() {
     signatures_.clear();
     for(auto primary_type : primary_types_) {
