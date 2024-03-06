@@ -144,17 +144,10 @@ void DipoleDISFromSpline::InitializeSignatures() {
 }
 
 double DipoleDISFromSpline::TotalCrossSection(dataclasses::InteractionRecord const & interaction) const {
-    LI::dataclasses::Particle::ParticleType primary_type = interaction.signature.primary_type;
+    LI::dataclasses::ParticleType primary_type = interaction.signature.primary_type;
     rk::P4 p1(geom3::Vector3(interaction.primary_momentum[1], interaction.primary_momentum[2], interaction.primary_momentum[3]), interaction.primary_mass);
-    rk::P4 p2(geom3::Vector3(interaction.target_momentum[1], interaction.target_momentum[2], interaction.target_momentum[3]), interaction.target_mass);
     double primary_energy;
-    if(interaction.target_momentum[1] == 0 and interaction.target_momentum[2] == 0 and interaction.target_momentum[3] == 0) {
-        primary_energy = interaction.primary_momentum[0];
-    } else {
-        rk::Boost boost_start_to_lab = p2.restBoost();
-        rk::P4 p1_lab = boost_start_to_lab * p1;
-        primary_energy = p1_lab.e();
-    }
+    primary_energy = interaction.primary_momentum[0];
     // if we are below threshold, return 0
     if(primary_energy < InteractionThreshold(interaction))
         return 0;
@@ -199,18 +192,7 @@ double DipoleDISFromSpline::DifferentialCrossSection(dataclasses::InteractionRec
     rk::P4 p1(geom3::Vector3(interaction.primary_momentum[1], interaction.primary_momentum[2], interaction.primary_momentum[3]), interaction.primary_mass);
     rk::P4 p2(geom3::Vector3(interaction.target_momentum[1], interaction.target_momentum[2], interaction.target_momentum[3]), interaction.target_mass);
     double primary_energy;
-    rk::P4 p1_lab;
-    rk::P4 p2_lab;
-    if(interaction.target_momentum[1] == 0 and interaction.target_momentum[2] == 0 and interaction.target_momentum[3] == 0) {
-        primary_energy = interaction.primary_momentum[0];
-        p1_lab = p1;
-        p2_lab = p2;
-    } else {
-        rk::Boost boost_start_to_lab = p2.restBoost();
-        p1_lab = boost_start_to_lab * p1;
-        p2_lab = boost_start_to_lab * p2;
-        primary_energy = p1_lab.e();
-    }
+    primary_energy = interaction.primary_momentum[0];
     assert(interaction.signature.secondary_types.size() == 2);
     unsigned int hnl_index = (interaction.signature.secondary_types[0]==LI::dataclasses::ParticleType::NuF4 || interaction.signature.secondary_types[0]==LI::dataclasses::ParticleType::NuF4Bar) ? 0 : 1;
     unsigned int other_index = 1 - hnl_index;
@@ -294,17 +276,9 @@ void DipoleDISFromSpline::SampleFinalState(dataclasses::InteractionRecord& inter
     double primary_energy;
     rk::P4 p1_lab;
     rk::P4 p2_lab;
-    if(interaction.target_momentum[1] == 0 and interaction.target_momentum[2] == 0 and interaction.target_momentum[3] == 0) {
-        p1_lab = p1;
-        p2_lab = p2;
-        primary_energy = p1_lab.e();
-    } else {
-        // Rest frame of p2 will be our "lab" frame
-        rk::Boost boost_start_to_lab = p2.restBoost();
-        p1_lab = boost_start_to_lab * p1;
-        p2_lab = boost_start_to_lab * p2;
-        primary_energy = p1_lab.e();
-    }
+    p1_lab = p1;
+    p2_lab = p2;
+    primary_energy = p1_lab.e();
 
     unsigned int hnl_index = (interaction.signature.secondary_types[0]==LI::dataclasses::ParticleType::NuF4 || interaction.signature.secondary_types[0]==LI::dataclasses::ParticleType::NuF4Bar) ? 0 : 1;
     unsigned int other_index = 1 - hnl_index;
@@ -428,10 +402,10 @@ void DipoleDISFromSpline::SampleFinalState(dataclasses::InteractionRecord& inter
     double final_x = pow(10., kin_vars[1]);
     double final_y = pow(10., kin_vars[2]);
 
-    interaction.interaction_parameters.resize(3);
-    interaction.interaction_parameters[0] = E1_lab;
-    interaction.interaction_parameters[1] = final_x;
-    interaction.interaction_parameters[2] = final_y;
+    interaction.interaction_parameters.clear();
+    record.interaction_parameters["energy"] = E1_lab;
+    record.interaction_parameters["bjorken_x"] = final_x;
+    record.interaction_parameters["bjorken_y"] = final_y;
 
     double Q2 = 2 * E1_lab * E2_lab * pow(10.0, kin_vars[1] + kin_vars[2]);
     double p1x_lab = std::sqrt(p1_lab.px() * p1_lab.px() + p1_lab.py() * p1_lab.py() + p1_lab.pz() * p1_lab.pz());
@@ -457,34 +431,21 @@ void DipoleDISFromSpline::SampleFinalState(dataclasses::InteractionRecord& inter
 
     rk::P4 p3;
     rk::P4 p4;
-    if(interaction.target_momentum[1] == 0 and interaction.target_momentum[2] == 0 and interaction.target_momentum[3] == 0) {
-        p3 = p3_lab;
-        p4 = p4_lab;
-    } else {
-        rk::Boost boost_lab_to_start = p2.labBoost();
-        p3 = boost_lab_to_start * p3_lab;
-        p4 = boost_lab_to_start * p4_lab;
-    }
+    p3 = p3_lab;
+    p4 = p4_lab;
 
-    interaction.secondary_momenta.resize(2);
-    interaction.secondary_masses.resize(2);
-    interaction.secondary_helicity.resize(2);
+    std::vector<LI::dataclasses::SecondaryParticleRecord> & secondaries = record.GetSecondaryParticleRecords();
+    LI::dataclasses::SecondaryParticleRecord & hnl = secondaries[hnl_index];
+    LI::dataclasses::SecondaryParticleRecord & other = secondaries[other_index];
 
-    interaction.secondary_momenta[hnl_index][0] = p3.e(); // p3_energy
-    interaction.secondary_momenta[hnl_index][1] = p3.px(); // p3_x
-    interaction.secondary_momenta[hnl_index][2] = p3.py(); // p3_y
-    interaction.secondary_momenta[hnl_index][3] = p3.pz(); // p3_z
-    interaction.secondary_masses[hnl_index] = p3.m();
 
-    interaction.secondary_helicity[hnl_index] = -1.0 * interaction.primary_helicity; // assume helicity flipping
+    hnl.SetFourMomentum({p3.e(), p3.px(), p3.py(), p3.pz()});
+    hnl.SetMass(p3.m());
+    hnl.SetHelicity(-1.0 * record.primary_helicity); // assume helicity flipping
 
-    interaction.secondary_momenta[other_index][0] = p4.e(); // p4_energy
-    interaction.secondary_momenta[other_index][1] = p4.px(); // p4_x
-    interaction.secondary_momenta[other_index][2] = p4.py(); // p4_y
-    interaction.secondary_momenta[other_index][3] = p4.pz(); // p4_z
-    interaction.secondary_masses[other_index] = p4.m();
-
-    interaction.secondary_helicity[other_index] = interaction.target_helicity;
+    other.SetFourMomentum({p4.e(), p4.px(), p4.py(), p4.pz()});
+    other.SetMass(p4.m());
+    other.SetHelicity(record.target_helicity);
 }
 
 double DipoleDISFromSpline::FinalStateProbability(dataclasses::InteractionRecord const & interaction) const {
