@@ -36,7 +36,7 @@ bool kinematicallyAllowed(double x, double y, double E, double M, double m) {
     double Q2 = 2*M*E*x*y;
     double W2 = M*M + Q2/x * (1-x);
     double Er = E*y;
-    double term = M*M - W2 - 2*x*E*M - x*x*M*M + 2*Er(x*M + E,2);
+    double term = M*M - W2 - 2*x*E*M - x*x*M*M + 2*Er(x*M + E);
     return Er*Er - W2 - term*term/(4*E*E) > 0; // equation 5
 }
 }
