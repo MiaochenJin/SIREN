@@ -272,7 +272,7 @@ void DipoleDISFromSpline::SampleFinalState(dataclasses::CrossSectionDistribution
     }
 
     rk::P4 p1(geom3::Vector3(interaction.primary_momentum[1], interaction.primary_momentum[2], interaction.primary_momentum[3]), interaction.primary_mass);
-    rk::P4 p2(geom3::Vector3(interaction.target_momentum[1], interaction.target_momentum[2], interaction.target_momentum[3]), interaction.target_mass);
+    rk::P4 p2(geom3::Vector3(0, 0, 0), interaction.target_mass);
 
     // we assume that:
     // the target is stationary so its energy is just its mass
