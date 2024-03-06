@@ -43,19 +43,19 @@ bool kinematicallyAllowed(double x, double y, double E, double M, double m) {
 
 DipoleDISFromSpline::DipoleDISFromSpline() {}
 
-DipoleDISFromSpline::DipoleDISFromSpline(std::vector<char> differential_data, std::vector<char> total_data, double hnl_mass, std::vector<double> diople_coupling, int interaction, double target_mass, double minimum_Q2, std::set<LI::dataclasses::ParticleType> primary_types, std::set<LI::dataclasses::ParticleType> target_types, std::string units) : hnl_mass_(hnl_mass), dipole_coupling_(dipole_coupling), primary_types_(primary_types), target_types_(target_types), interaction_type_(interaction), target_mass_(target_mass), minimum_Q2_(minimum_Q2) {
+DipoleDISFromSpline::DipoleDISFromSpline(std::vector<char> differential_data, std::vector<char> total_data, double hnl_mass, std::vector<double> diople_coupling, double target_mass, double minimum_Q2, std::set<LI::dataclasses::ParticleType> primary_types, std::set<LI::dataclasses::ParticleType> target_types, std::string units) : hnl_mass_(hnl_mass), dipole_coupling_(dipole_coupling), primary_types_(primary_types), target_types_(target_types), target_mass_(target_mass), minimum_Q2_(minimum_Q2) {
     LoadFromMemory(differential_data, total_data);
     InitializeSignatures();
     SetUnits(units);
 }
 
-DipoleDISFromSpline::DipoleDISFromSpline(std::vector<char> differential_data, std::vector<char> total_data, double hnl_mass, std::vector<double> diople_coupling, int interaction, double target_mass, double minimum_Q2, std::vector<LI::dataclasses::ParticleType> primary_types, std::vector<LI::dataclasses::ParticleType> target_types, std::string units) : hnl_mass_(hnl_mass), dipole_coupling_(dipole_coupling), primary_types_(primary_types.begin(), primary_types.end()), target_types_(target_types.begin(), target_types.end()), interaction_type_(interaction), target_mass_(target_mass), minimum_Q2_(minimum_Q2) {
+DipoleDISFromSpline::DipoleDISFromSpline(std::vector<char> differential_data, std::vector<char> total_data, double hnl_mass, std::vector<double> diople_coupling, double target_mass, double minimum_Q2, std::vector<LI::dataclasses::ParticleType> primary_types, std::vector<LI::dataclasses::ParticleType> target_types, std::string units) : hnl_mass_(hnl_mass), dipole_coupling_(dipole_coupling), primary_types_(primary_types.begin(), primary_types.end()), target_types_(target_types.begin(), target_types.end()), target_mass_(target_mass), minimum_Q2_(minimum_Q2) {
     LoadFromMemory(differential_data, total_data);
     InitializeSignatures();
     SetUnits(units);
 }
 
-DipoleDISFromSpline::DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> diople_coupling, int interaction, double target_mass, double minimum_Q2, std::set<LI::dataclasses::ParticleType> primary_types, std::set<LI::dataclasses::ParticleType> target_types, std::string units) : hnl_mass_(hnl_mass), dipole_coupling_(dipole_coupling), primary_types_(primary_types), target_types_(target_types), interaction_type_(interaction), target_mass_(target_mass), minimum_Q2_(minimum_Q2) {
+DipoleDISFromSpline::DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> diople_coupling, double target_mass, double minimum_Q2, std::set<LI::dataclasses::ParticleType> primary_types, std::set<LI::dataclasses::ParticleType> target_types, std::string units) : hnl_mass_(hnl_mass), dipole_coupling_(dipole_coupling), primary_types_(primary_types), target_types_(target_types), target_mass_(target_mass), minimum_Q2_(minimum_Q2) {
     LoadFromFile(differential_filename, total_filename);
     InitializeSignatures();
     SetUnits(units);
@@ -68,7 +68,7 @@ DipoleDISFromSpline::DipoleDISFromSpline(std::string differential_filename, std:
     SetUnits(units);
 }
 
-DipoleDISFromSpline::DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> diople_coupling, int interaction, double target_mass, double minimum_Q2, std::vector<LI::dataclasses::ParticleType> primary_types, std::vector<LI::dataclasses::ParticleType> target_types, std::string units) : hnl_mass_(hnl_mass), dipole_coupling_(dipole_coupling), primary_types_(primary_types.begin(), primary_types.end()), target_types_(target_types.begin(), target_types.end()), interaction_type_(interaction), target_mass_(target_mass), minimum_Q2_(minimum_Q2) {
+DipoleDISFromSpline::DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> diople_coupling, double target_mass, double minimum_Q2, std::vector<LI::dataclasses::ParticleType> primary_types, std::vector<LI::dataclasses::ParticleType> target_types, std::string units) : hnl_mass_(hnl_mass), dipole_coupling_(dipole_coupling), primary_types_(primary_types.begin(), primary_types.end()), target_types_(target_types.begin(), target_types.end()), target_mass_(target_mass), minimum_Q2_(minimum_Q2) {
     LoadFromFile(differential_filename, total_filename);
     InitializeSignatures();
     SetUnits(units);
@@ -182,15 +182,10 @@ double DipoleDISFromSpline::TotalCrossSection(LI::dataclasses::Particle::Particl
     return norm * unit * std::pow(10.0, log_xs);
 }
 
-// No implementation for DIS yet, just use non-target function
-double DipoleDISFromSpline::TotalCrossSection(LI::dataclasses::Particle::ParticleType primary_type, double primary_energy, LI::dataclasses::Particle::ParticleType target_type) const {
-		return DipoleDISFromSpline::TotalCrossSection(primary_type,primary_energy);
-}
-
 
 double DipoleDISFromSpline::DifferentialCrossSection(dataclasses::InteractionRecord const & interaction) const {
     rk::P4 p1(geom3::Vector3(interaction.primary_momentum[1], interaction.primary_momentum[2], interaction.primary_momentum[3]), interaction.primary_mass);
-    rk::P4 p2(geom3::Vector3(interaction.target_momentum[1], interaction.target_momentum[2], interaction.target_momentum[3]), interaction.target_mass);
+    rk::P4 p2(geom3::Vector3(0,0,0), interaction.target_mass);
     double primary_energy;
     primary_energy = interaction.primary_momentum[0];
     assert(interaction.signature.secondary_types.size() == 2);
@@ -257,7 +252,7 @@ double DipoleDISFromSpline::InteractionThreshold(dataclasses::InteractionRecord 
     return 0;
 }
 
-void DipoleDISFromSpline::SampleFinalState(dataclasses::InteractionRecord& interaction, std::shared_ptr<LI::utilities::LI_random> random) const {
+void DipoleDISFromSpline::SampleFinalState(dataclasses::CrossSectionDistributionRecord& interaction, std::shared_ptr<LI::utilities::LI_random> random) const {
     // Uses Metropolis-Hastings Algorithm!
     // useful for cases where we don't know the supremum of our distribution, and the distribution is multi-dimensional
     if (differential_cross_section_.get_ndim() != 3) {
@@ -403,9 +398,9 @@ void DipoleDISFromSpline::SampleFinalState(dataclasses::InteractionRecord& inter
     double final_y = pow(10., kin_vars[2]);
 
     interaction.interaction_parameters.clear();
-    record.interaction_parameters["energy"] = E1_lab;
-    record.interaction_parameters["bjorken_x"] = final_x;
-    record.interaction_parameters["bjorken_y"] = final_y;
+    interaction.interaction_parameters["energy"] = E1_lab;
+    interaction.interaction_parameters["bjorken_x"] = final_x;
+    interaction.interaction_parameters["bjorken_y"] = final_y;
 
     double Q2 = 2 * E1_lab * E2_lab * pow(10.0, kin_vars[1] + kin_vars[2]);
     double p1x_lab = std::sqrt(p1_lab.px() * p1_lab.px() + p1_lab.py() * p1_lab.py() + p1_lab.pz() * p1_lab.pz());
@@ -434,18 +429,18 @@ void DipoleDISFromSpline::SampleFinalState(dataclasses::InteractionRecord& inter
     p3 = p3_lab;
     p4 = p4_lab;
 
-    std::vector<LI::dataclasses::SecondaryParticleRecord> & secondaries = record.GetSecondaryParticleRecords();
+    std::vector<LI::dataclasses::SecondaryParticleRecord> & secondaries = interaction.GetSecondaryParticleRecords();
     LI::dataclasses::SecondaryParticleRecord & hnl = secondaries[hnl_index];
     LI::dataclasses::SecondaryParticleRecord & other = secondaries[other_index];
 
 
     hnl.SetFourMomentum({p3.e(), p3.px(), p3.py(), p3.pz()});
     hnl.SetMass(p3.m());
-    hnl.SetHelicity(-1.0 * record.primary_helicity); // assume helicity flipping
+    hnl.SetHelicity(-1.0 * interaction.primary_helicity); // assume helicity flipping
 
     other.SetFourMomentum({p4.e(), p4.px(), p4.py(), p4.pz()});
     other.SetMass(p4.m());
-    other.SetHelicity(record.target_helicity);
+    other.SetHelicity(interaction.target_helicity);
 }
 
 double DipoleDISFromSpline::FinalStateProbability(dataclasses::InteractionRecord const & interaction) const {

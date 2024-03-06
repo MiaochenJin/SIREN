@@ -55,20 +55,19 @@ private:
 
 public:
     DipoleDISFromSpline();
-    DipoleDISFromSpline(std::vector<char> differential_data, std::vector<char> total_data, double hnl_mass, std::vector<double> diople_coupling, double target_mass, double minumum_Q2, std::set<LI::dataclasses::ParticleType> primary_types, std::set<LI::dataclasses::ParticleType> target_types, std::string units = "cm");
-    DipoleDISFromSpline(std::vector<char> differential_data, std::vector<char> total_data, double hnl_mass, std::vector<double> diople_coupling, double target_mass, double minumum_Q2, std::vector<LI::dataclasses::ParticleType> primary_types, std::vector<LI::dataclasses::ParticleType> target_types, std::string units = "cm");
-    DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> diople_coupling, double target_mass, double minumum_Q2, std::set<LI::dataclasses::ParticleType> primary_types, std::set<LI::dataclasses::ParticleType> target_types, std::string units = "cm");
-    DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> diople_coupling, std::set<LI::dataclasses::ParticleType> primary_types, std::set<LI::dataclasses::ParticleType> target_types, std::string units = "cm");
-    DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> diople_coupling, double target_mass, double minumum_Q2, std::vector<LI::dataclasses::ParticleType> primary_types, std::vector<LI::dataclasses::ParticleType> target_types, std::string units = "cm");
-    DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> diople_coupling, std::vector<LI::dataclasses::ParticleType> primary_types, std::vector<LI::dataclasses::ParticleType> target_types, std::string units = "cm");
+    DipoleDISFromSpline(std::vector<char> differential_data, std::vector<char> total_data, double hnl_mass, std::vector<double> dipole_coupling, double target_mass, double minumum_Q2, std::set<LI::dataclasses::ParticleType> primary_types, std::set<LI::dataclasses::ParticleType> target_types, std::string units = "cm");
+    DipoleDISFromSpline(std::vector<char> differential_data, std::vector<char> total_data, double hnl_mass, std::vector<double> dipole_coupling, double target_mass, double minumum_Q2, std::vector<LI::dataclasses::ParticleType> primary_types, std::vector<LI::dataclasses::ParticleType> target_types, std::string units = "cm");
+    DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> dipole_coupling, double target_mass, double minumum_Q2, std::set<LI::dataclasses::ParticleType> primary_types, std::set<LI::dataclasses::ParticleType> target_types, std::string units = "cm");
+    DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> dipole_coupling, std::set<LI::dataclasses::ParticleType> primary_types, std::set<LI::dataclasses::ParticleType> target_types, std::string units = "cm");
+    DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> dipole_coupling, double target_mass, double minumum_Q2, std::vector<LI::dataclasses::ParticleType> primary_types, std::vector<LI::dataclasses::ParticleType> target_types, std::string units = "cm");
+    DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> dipole_coupling, std::vector<LI::dataclasses::ParticleType> primary_types, std::vector<LI::dataclasses::ParticleType> target_types, std::string units = "cm");
     
-    void Sestd::vector<double>(std::string units);
+    void SetUnits::vector<double>(std::string units);
 
     virtual bool equal(CrossSection const & other) const override;
 
     double TotalCrossSection(dataclasses::InteractionRecord const &) const override;
     double TotalCrossSection(LI::dataclasses::Particle::ParticleType primary_type, double energy) const;
-    double TotalCrossSection(LI::dataclasses::Particle::ParticleType primary_type, double energy, LI::dataclasses::Particle::ParticleType target) const override;
     double DifferentialCrossSection(dataclasses::InteractionRecord const &) const override;
     double DifferentialCrossSection(LI::dataclasses::Particle::ParticleType primary_type, double energy, double x, double y, double Q2=std::numeric_limits<double>::quiet_NaN()) const;
     double InteractionThreshold(dataclasses::InteractionRecord const &) const override;
@@ -87,7 +86,7 @@ public:
 
     double GetMinimumQ2() const {return minimum_Q2_;};
     double GetTargetMass() const {return target_mass_;};
-    int GetInteractionType() const {return interaction_type_;};
+    double GetHNLMass() const {return hnl_mass_;};
 
 public:
     virtual std::vector<std::string> DensityVariables() const override;
@@ -118,8 +117,9 @@ public:
             archive(::cereal::make_nvp("TotalCrossSectionSpline", total_blob));
             archive(::cereal::make_nvp("PrimaryTypes", primary_types_));
             archive(::cereal::make_nvp("TargetTypes", target_types_));
-            archive(::cereal::make_nvp("InteractionType", interaction_type_));
             archive(::cereal::make_nvp("TargetMass", target_mass_));
+            archive(::cereal::make_nvp("HNLMass", hnl_mass_));
+            archive(::cereal::make_nvp("DipoleCoupling", dipole_coupling_));
             archive(::cereal::make_nvp("MinimumQ2", minimum_Q2_));
             archive(cereal::virtual_base_class<CrossSection>(this));
         } else {
@@ -135,8 +135,9 @@ public:
             archive(::cereal::make_nvp("TotalCrossSectionSpline", total_data));
             archive(::cereal::make_nvp("PrimaryTypes", primary_types_));
             archive(::cereal::make_nvp("TargetTypes", target_types_));
-            archive(::cereal::make_nvp("InteractionType", interaction_type_));
             archive(::cereal::make_nvp("TargetMass", target_mass_));
+            archive(::cereal::make_nvp("HNLMass", hnl_mass_));
+            archive(::cereal::make_nvp("DipoleCoupling", dipole_coupling_));
             archive(::cereal::make_nvp("MinimumQ2", minimum_Q2_));
             archive(cereal::virtual_base_class<CrossSection>(this));
             LoadFromMemory(differential_data, total_data);
