@@ -43,42 +43,54 @@ bool kinematicallyAllowed(double x, double y, double E, double M, double m) {
 
 DipoleDISFromSpline::DipoleDISFromSpline() {}
 
-DipoleDISFromSpline::DipoleDISFromSpline(std::vector<char> differential_data, std::vector<char> total_data, double hnl_mass, std::vector<double> diople_coupling, double target_mass, double minimum_Q2, std::set<LI::dataclasses::ParticleType> primary_types, std::set<LI::dataclasses::ParticleType> target_types, std::string units) : hnl_mass_(hnl_mass), dipole_coupling_(dipole_coupling), primary_types_(primary_types), target_types_(target_types), target_mass_(target_mass), minimum_Q2_(minimum_Q2) {
+DipoleDISFromSpline::DipoleDISFromSpline(std::vector<char> differential_data, std::vector<char> total_data, double hnl_mass, std::vector<double> dipole_coupling, double target_mass, double minimum_Q2, std::set<LI::dataclasses::ParticleType> primary_types, std::set<LI::dataclasses::ParticleType> target_types, std::string units) : hnl_mass_(hnl_mass), dipole_coupling_(dipole_coupling), primary_types_(primary_types), target_types_(target_types), target_mass_(target_mass), minimum_Q2_(minimum_Q2) {
     LoadFromMemory(differential_data, total_data);
     InitializeSignatures();
     SetUnits(units);
 }
 
-DipoleDISFromSpline::DipoleDISFromSpline(std::vector<char> differential_data, std::vector<char> total_data, double hnl_mass, std::vector<double> diople_coupling, double target_mass, double minimum_Q2, std::vector<LI::dataclasses::ParticleType> primary_types, std::vector<LI::dataclasses::ParticleType> target_types, std::string units) : hnl_mass_(hnl_mass), dipole_coupling_(dipole_coupling), primary_types_(primary_types.begin(), primary_types.end()), target_types_(target_types.begin(), target_types.end()), target_mass_(target_mass), minimum_Q2_(minimum_Q2) {
+DipoleDISFromSpline::DipoleDISFromSpline(std::vector<char> differential_data, std::vector<char> total_data, double hnl_mass, std::vector<double> dipole_coupling, double target_mass, double minimum_Q2, std::vector<LI::dataclasses::ParticleType> primary_types, std::vector<LI::dataclasses::ParticleType> target_types, std::string units) : hnl_mass_(hnl_mass), dipole_coupling_(dipole_coupling), primary_types_(primary_types.begin(), primary_types.end()), target_types_(target_types.begin(), target_types.end()), target_mass_(target_mass), minimum_Q2_(minimum_Q2) {
     LoadFromMemory(differential_data, total_data);
     InitializeSignatures();
     SetUnits(units);
 }
 
-DipoleDISFromSpline::DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> diople_coupling, double target_mass, double minimum_Q2, std::set<LI::dataclasses::ParticleType> primary_types, std::set<LI::dataclasses::ParticleType> target_types, std::string units) : hnl_mass_(hnl_mass), dipole_coupling_(dipole_coupling), primary_types_(primary_types), target_types_(target_types), target_mass_(target_mass), minimum_Q2_(minimum_Q2) {
+DipoleDISFromSpline::DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> dipole_coupling, double target_mass, double minimum_Q2, std::set<LI::dataclasses::ParticleType> primary_types, std::set<LI::dataclasses::ParticleType> target_types, std::string units) : hnl_mass_(hnl_mass), dipole_coupling_(dipole_coupling), primary_types_(primary_types), target_types_(target_types), target_mass_(target_mass), minimum_Q2_(minimum_Q2) {
     LoadFromFile(differential_filename, total_filename);
     InitializeSignatures();
     SetUnits(units);
 }
 
-DipoleDISFromSpline::DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> diople_coupling, std::set<LI::dataclasses::ParticleType> primary_types, std::set<LI::dataclasses::ParticleType> target_types, std::string units) : hnl_mass_(hnl_mass), dipole_coupling_(dipole_coupling), primary_types_(primary_types), target_types_(target_types) {
+DipoleDISFromSpline::DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> dipole_coupling, std::set<LI::dataclasses::ParticleType> primary_types, std::set<LI::dataclasses::ParticleType> target_types, std::string units) : hnl_mass_(hnl_mass), dipole_coupling_(dipole_coupling), primary_types_(primary_types), target_types_(target_types) {
     LoadFromFile(differential_filename, total_filename);
     ReadParamsFromSplineTable();
     InitializeSignatures();
     SetUnits(units);
 }
 
-DipoleDISFromSpline::DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> diople_coupling, double target_mass, double minimum_Q2, std::vector<LI::dataclasses::ParticleType> primary_types, std::vector<LI::dataclasses::ParticleType> target_types, std::string units) : hnl_mass_(hnl_mass), dipole_coupling_(dipole_coupling), primary_types_(primary_types.begin(), primary_types.end()), target_types_(target_types.begin(), target_types.end()), target_mass_(target_mass), minimum_Q2_(minimum_Q2) {
+DipoleDISFromSpline::DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> dipole_coupling, double target_mass, double minimum_Q2, std::vector<LI::dataclasses::ParticleType> primary_types, std::vector<LI::dataclasses::ParticleType> target_types, std::string units) : hnl_mass_(hnl_mass), dipole_coupling_(dipole_coupling), primary_types_(primary_types.begin(), primary_types.end()), target_types_(target_types.begin(), target_types.end()), target_mass_(target_mass), minimum_Q2_(minimum_Q2) {
     LoadFromFile(differential_filename, total_filename);
     InitializeSignatures();
     SetUnits(units);
 }
 
-DipoleDISFromSpline::DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> diople_coupling, std::vector<LI::dataclasses::ParticleType> primary_types, std::vector<LI::dataclasses::ParticleType> target_types, std::string units) : hnl_mass_(hnl_mass), dipole_coupling_(dipole_coupling), primary_types_(primary_types.begin(), primary_types.end()), target_types_(target_types.begin(), target_types.end()) {
+DipoleDISFromSpline::DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> dipole_coupling, std::vector<LI::dataclasses::ParticleType> primary_types, std::vector<LI::dataclasses::ParticleType> target_types, std::string units) : hnl_mass_(hnl_mass), dipole_coupling_(dipole_coupling), primary_types_(primary_types.begin(), primary_types.end()), target_types_(target_types.begin(), target_types.end()) {
     LoadFromFile(differential_filename, total_filename);
     ReadParamsFromSplineTable();
     InitializeSignatures();
     SetUnits(units);
+}
+
+void DipoleDISFromSpline::SetUnits(std::string units) {
+    std::transform(units.begin(), units.end(), units.begin(),
+        [](unsigned char c){ return std::tolower(c); });
+    if(units == "cm") {
+        unit = 1.0;
+    } else if(units == "m") {
+        unit = 10000.0;
+    } else {
+        throw std::runtime_error("Cross section units not supported!");
+    }
 }
 
 bool DipoleDISFromSpline::equal(CrossSection const & other) const {
@@ -95,9 +107,9 @@ bool DipoleDISFromSpline::equal(CrossSection const & other) const {
             minimum_Q2_,
             signatures_,
             primary_types_,
-            target_types_
-            *pdf_,
-            pids_)
+            target_types_,
+            differential_cross_section_,
+            total_cross_section_)
             ==
             std::tie(
             x->target_mass_,
@@ -106,9 +118,9 @@ bool DipoleDISFromSpline::equal(CrossSection const & other) const {
             x->minimum_Q2_,
             x->signatures_,
             x->primary_types_,
-            x->target_types_
-            *(x->pdf_),
-            x->pids_);
+            x->target_types_,
+            x->differential_cross_section_,
+            x->total_cross_section_);
 }
 
 void DipoleDISFromSpline::InitializeSignatures() {
@@ -228,7 +240,7 @@ double DipoleDISFromSpline::DifferentialCrossSection(LI::dataclasses::Particle::
 
     // cross section should be zero, but this check is missing from the original
     // CSMS calculation, so we must add it here
-    if(!kinematicallyAllowed(x, y, energy, target_mass_, secondary_lepton_mass))
+    if(!kinematicallyAllowed(x, y, energy, target_mass_, hnl_mass_))
         return 0;
 
     std::array<double,3> coordinates{{log_energy, log10(x), log10(y)}};
