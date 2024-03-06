@@ -1,4 +1,4 @@
-#include "LeptonInjector/interactions/DipoleDIS.h"
+#include "LeptonInjector/interactions/DipoleDISFromSpline.h"
 
 #include <map>                                             // for map, opera...
 #include <set>                                             // for set, opera...
@@ -14,6 +14,8 @@
 #include <rk/rk.hh>                                        // for P4, Boost
 #include <rk/geom3.hh>                                     // for Vector3
 
+#include <photospline/splinetable.h>                       // for splinetable
+
 #include "LeptonInjector/interactions/CrossSection.h"     // for CrossSection
 #include "LeptonInjector/dataclasses/InteractionRecord.h"  // for Interactio...
 #include "LeptonInjector/dataclasses/Particle.h"           // for Particle
@@ -24,7 +26,7 @@ namespace interactions {
 
 namespace {
 ///Check whether a given point in phase space is physically realizable.
-///Based on equations 5 of https://arxiv.org/pdf/1707.08573.pdf
+///Based on equation 5 of https://arxiv.org/pdf/1707.08573.pdf
 ///\param x Bjorken x of the interaction
 ///\param y Bjorken y of the interaction
 ///\param E Incoming neutrino in energy in the lab frame ($E_\nu$)
@@ -39,14 +41,48 @@ bool kinematicallyAllowed(double x, double y, double E, double M, double m) {
 }
 }
 
-DipoleDIS::DipoleDIS() {}
+DipoleDISFromSpline::DipoleDISFromSpline() {}
 
-DipoleDIS::DipoleDIS(std::string pdfset_name, int pdfset_mem, double target_mass, double hnl_mass, double minumum_Q2, std::vector<LI::dataclasses::Particle::ParticleType> primary_types, std::vector<LI::dataclasses::Particle::ParticleType> target_types) : primary_types_(primary_types), target_types_(target_types), target_mass_(target_mass), hnl_mass_(hnl_mass), minimum_Q2_(minimum_Q2) {
+DipoleDISFromSpline::DipoleDISFromSpline(std::vector<char> differential_data, std::vector<char> total_data, double hnl_mass, std::vector<double> diople_coupling, int interaction, double target_mass, double minimum_Q2, std::set<LI::dataclasses::ParticleType> primary_types, std::set<LI::dataclasses::ParticleType> target_types, std::string units) : hnl_mass_(hnl_mass), dipole_coupling_(dipole_coupling), primary_types_(primary_types), target_types_(target_types), interaction_type_(interaction), target_mass_(target_mass), minimum_Q2_(minimum_Q2) {
+    LoadFromMemory(differential_data, total_data);
     InitializeSignatures();
+    SetUnits(units);
 }
 
-bool DipoleDIS::equal(CrossSection const & other) const {
-    const DipoleDIS* x = dynamic_cast<const DipoleDIS*>(&other);
+DipoleDISFromSpline::DipoleDISFromSpline(std::vector<char> differential_data, std::vector<char> total_data, double hnl_mass, std::vector<double> diople_coupling, int interaction, double target_mass, double minimum_Q2, std::vector<LI::dataclasses::ParticleType> primary_types, std::vector<LI::dataclasses::ParticleType> target_types, std::string units) : hnl_mass_(hnl_mass), dipole_coupling_(dipole_coupling), primary_types_(primary_types.begin(), primary_types.end()), target_types_(target_types.begin(), target_types.end()), interaction_type_(interaction), target_mass_(target_mass), minimum_Q2_(minimum_Q2) {
+    LoadFromMemory(differential_data, total_data);
+    InitializeSignatures();
+    SetUnits(units);
+}
+
+DipoleDISFromSpline::DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> diople_coupling, int interaction, double target_mass, double minimum_Q2, std::set<LI::dataclasses::ParticleType> primary_types, std::set<LI::dataclasses::ParticleType> target_types, std::string units) : hnl_mass_(hnl_mass), dipole_coupling_(dipole_coupling), primary_types_(primary_types), target_types_(target_types), interaction_type_(interaction), target_mass_(target_mass), minimum_Q2_(minimum_Q2) {
+    LoadFromFile(differential_filename, total_filename);
+    InitializeSignatures();
+    SetUnits(units);
+}
+
+DipoleDISFromSpline::DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> diople_coupling, std::set<LI::dataclasses::ParticleType> primary_types, std::set<LI::dataclasses::ParticleType> target_types, std::string units) : hnl_mass_(hnl_mass), dipole_coupling_(dipole_coupling), primary_types_(primary_types), target_types_(target_types) {
+    LoadFromFile(differential_filename, total_filename);
+    ReadParamsFromSplineTable();
+    InitializeSignatures();
+    SetUnits(units);
+}
+
+DipoleDISFromSpline::DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> diople_coupling, int interaction, double target_mass, double minimum_Q2, std::vector<LI::dataclasses::ParticleType> primary_types, std::vector<LI::dataclasses::ParticleType> target_types, std::string units) : hnl_mass_(hnl_mass), dipole_coupling_(dipole_coupling), primary_types_(primary_types.begin(), primary_types.end()), target_types_(target_types.begin(), target_types.end()), interaction_type_(interaction), target_mass_(target_mass), minimum_Q2_(minimum_Q2) {
+    LoadFromFile(differential_filename, total_filename);
+    InitializeSignatures();
+    SetUnits(units);
+}
+
+DipoleDISFromSpline::DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> diople_coupling, std::vector<LI::dataclasses::ParticleType> primary_types, std::vector<LI::dataclasses::ParticleType> target_types, std::string units) : hnl_mass_(hnl_mass), dipole_coupling_(dipole_coupling), primary_types_(primary_types.begin(), primary_types.end()), target_types_(target_types.begin(), target_types.end()) {
+    LoadFromFile(differential_filename, total_filename);
+    ReadParamsFromSplineTable();
+    InitializeSignatures();
+    SetUnits(units);
+}
+
+bool DipoleDISFromSpline::equal(CrossSection const & other) const {
+    const DipoleDISFromSpline* x = dynamic_cast<const DipoleDISFromSpline*>(&other);
 
     if(!x)
         return false;
@@ -55,6 +91,7 @@ bool DipoleDIS::equal(CrossSection const & other) const {
             std::tie(
             target_mass_,
             hnl_mass_,
+            dipole_coupling_,
             minimum_Q2_,
             signatures_,
             primary_types_,
@@ -65,6 +102,7 @@ bool DipoleDIS::equal(CrossSection const & other) const {
             std::tie(
             x->target_mass_,
             x->hnl_mass_,
+            x->dipole_coupling_,
             x->minimum_Q2_,
             x->signatures_,
             x->primary_types_,
@@ -73,7 +111,7 @@ bool DipoleDIS::equal(CrossSection const & other) const {
             x->pids_);
 }
 
-void DipoleDIS::InitializeSignatures() {
+void DipoleDISFromSpline::InitializeSignatures() {
     signatures_.clear();
     for(auto primary_type : primary_types_) {
         dataclasses::InteractionSignature signature;
@@ -105,7 +143,7 @@ void DipoleDIS::InitializeSignatures() {
     }
 }
 
-double DipoleDIS::TotalCrossSection(dataclasses::InteractionRecord const & interaction) const {
+double DipoleDISFromSpline::TotalCrossSection(dataclasses::InteractionRecord const & interaction) const {
     LI::dataclasses::Particle::ParticleType primary_type = interaction.signature.primary_type;
     rk::P4 p1(geom3::Vector3(interaction.primary_momentum[1], interaction.primary_momentum[2], interaction.primary_momentum[3]), interaction.primary_mass);
     rk::P4 p2(geom3::Vector3(interaction.target_momentum[1], interaction.target_momentum[2], interaction.target_momentum[3]), interaction.target_mass);
@@ -123,7 +161,7 @@ double DipoleDIS::TotalCrossSection(dataclasses::InteractionRecord const & inter
     return TotalCrossSection(primary_type, primary_energy);
 }
 
-double DipoleDIS::TotalCrossSection(LI::dataclasses::Particle::ParticleType primary_type, double primary_energy) const {
+double DipoleDISFromSpline::TotalCrossSection(LI::dataclasses::Particle::ParticleType primary_type, double primary_energy) const {
     if(not primary_types_.count(primary_type)) {
         throw std::runtime_error("Supplied primary not supported by cross section!");
     }
@@ -140,17 +178,24 @@ double DipoleDIS::TotalCrossSection(LI::dataclasses::Particle::ParticleType prim
     int center;
     total_cross_section_.searchcenters(&log_energy, &center);
     double log_xs = total_cross_section_.ndsplineeval(&log_energy, &center, 0);
+    double norm = 0;
+    if (primary_type==LI::dataclasses::ParticleType::NuE || primary_type==LI::dataclasses::ParticleType::NuEBar)
+        norm = std::pow(dipole_coupling_[0],2);
+    else if (primary_type==LI::dataclasses::ParticleType::NuMu || primary_type==LI::dataclasses::ParticleType::NuMuBar)
+        norm = std::pow(dipole_coupling_[1],2);
+    else if (primary_type==LI::dataclasses::ParticleType::NuTau || primary_type==LI::dataclasses::ParticleType::NuTauBar)
+        norm = std::pow(dipole_coupling_[1],2);
 
-    return unit * std::pow(10.0, log_xs);
+    return norm * unit * std::pow(10.0, log_xs);
 }
 
 // No implementation for DIS yet, just use non-target function
-double DipoleDIS::TotalCrossSection(LI::dataclasses::Particle::ParticleType primary_type, double primary_energy, LI::dataclasses::Particle::ParticleType target_type) const {
-		return DipoleDIS::TotalCrossSection(primary_type,primary_energy);
+double DipoleDISFromSpline::TotalCrossSection(LI::dataclasses::Particle::ParticleType primary_type, double primary_energy, LI::dataclasses::Particle::ParticleType target_type) const {
+		return DipoleDISFromSpline::TotalCrossSection(primary_type,primary_energy);
 }
 
 
-double DipoleDIS::DifferentialCrossSection(dataclasses::InteractionRecord const & interaction) const {
+double DipoleDISFromSpline::DifferentialCrossSection(dataclasses::InteractionRecord const & interaction) const {
     rk::P4 p1(geom3::Vector3(interaction.primary_momentum[1], interaction.primary_momentum[2], interaction.primary_momentum[3]), interaction.primary_mass);
     rk::P4 p2(geom3::Vector3(interaction.target_momentum[1], interaction.target_momentum[2], interaction.target_momentum[3]), interaction.target_mass);
     double primary_energy;
@@ -167,12 +212,12 @@ double DipoleDIS::DifferentialCrossSection(dataclasses::InteractionRecord const 
         primary_energy = p1_lab.e();
     }
     assert(interaction.signature.secondary_types.size() == 2);
-    unsigned int lepton_index = (isLepton(interaction.signature.secondary_types[0])) ? 0 : 1;
-    unsigned int other_index = 1 - lepton_index;
+    unsigned int hnl_index = (interaction.signature.secondary_types[0]==LI::dataclasses::ParticleType::NuF4 || interaction.signature.secondary_types[0]==LI::dataclasses::ParticleType::NuF4Bar) ? 0 : 1;
+    unsigned int other_index = 1 - hnl_index;
 
-    std::array<double, 4> const & mom3 = interaction.secondary_momenta[lepton_index];
+    std::array<double, 4> const & mom3 = interaction.secondary_momenta[hnl_index];
     std::array<double, 4> const & mom4 = interaction.secondary_momenta[other_index];
-    rk::P4 p3(geom3::Vector3(mom3[1], mom3[2], mom3[3]), interaction.secondary_masses[lepton_index]);
+    rk::P4 p3(geom3::Vector3(mom3[1], mom3[2], mom3[3]), interaction.secondary_masses[hnl_index]);
     rk::P4 p4(geom3::Vector3(mom4[1], mom4[2], mom4[3]), interaction.secondary_masses[other_index]);
 
     rk::P4 q = p1 - p3;
@@ -180,12 +225,11 @@ double DipoleDIS::DifferentialCrossSection(dataclasses::InteractionRecord const 
     double Q2 = -q.dot(q);
     double y = 1.0 - p2.dot(p3) / p2.dot(p1);
     double x = Q2 / (2.0 * p2.dot(q));
-    double lepton_mass = hnl_mass_;
 
-    return DifferentialCrossSection(primary_energy, x, y, lepton_mass, Q2);
+    return DifferentialCrossSection(interaction.signature.primary_type, primary_energy, x, y, Q2);
 }
 
-double DipoleDIS::DifferentialCrossSection(double energy, double x, double y, double secondary_lepton_mass, double Q2) const {
+double DipoleDISFromSpline::DifferentialCrossSection(LI::dataclasses::Particle::ParticleType primary_type, double energy, double x, double y, double Q2) const {
     double log_energy = log10(energy);
     // check preconditions
     if(log_energy < differential_cross_section_.lower_extent(0)
@@ -210,25 +254,28 @@ double DipoleDIS::DifferentialCrossSection(double energy, double x, double y, do
     if(!kinematicallyAllowed(x, y, energy, target_mass_, secondary_lepton_mass))
         return 0;
 
-    double result = 16. * Constants::PI 
-    for (int pid : pdf->flavors()) {
-        
-    }
     std::array<double,3> coordinates{{log_energy, log10(x), log10(y)}};
     std::array<int,3> centers;
     if(!differential_cross_section_.searchcenters(coordinates.data(), centers.data()))
         return 0;
     double result = pow(10., differential_cross_section_.ndsplineeval(coordinates.data(), centers.data(), 0));
     assert(result >= 0);
-    return unit * result;
+    double norm = 0;
+    if (primary_type==LI::dataclasses::ParticleType::NuE || primary_type==LI::dataclasses::ParticleType::NuEBar)
+        norm = std::pow(dipole_coupling_[0],2);
+    else if (primary_type==LI::dataclasses::ParticleType::NuMu || primary_type==LI::dataclasses::ParticleType::NuMuBar)
+        norm = std::pow(dipole_coupling_[1],2);
+    else if (primary_type==LI::dataclasses::ParticleType::NuTau || primary_type==LI::dataclasses::ParticleType::NuTauBar)
+        norm = std::pow(dipole_coupling_[1],2);
+    return norm * unit * result;
 }
 
-double DipoleDIS::InteractionThreshold(dataclasses::InteractionRecord const & interaction) const {
+double DipoleDISFromSpline::InteractionThreshold(dataclasses::InteractionRecord const & interaction) const {
     // Consider implementing thershold at some point
     return 0;
 }
 
-void DipoleDIS::SampleFinalState(dataclasses::InteractionRecord& interaction, std::shared_ptr<LI::utilities::LI_random> random) const {
+void DipoleDISFromSpline::SampleFinalState(dataclasses::InteractionRecord& interaction, std::shared_ptr<LI::utilities::LI_random> random) const {
     // Uses Metropolis-Hastings Algorithm!
     // useful for cases where we don't know the supremum of our distribution, and the distribution is multi-dimensional
     if (differential_cross_section_.get_ndim() != 3) {
@@ -259,8 +306,8 @@ void DipoleDIS::SampleFinalState(dataclasses::InteractionRecord& interaction, st
         primary_energy = p1_lab.e();
     }
 
-    unsigned int lepton_index = (isLepton(interaction.signature.secondary_types[0])) ? 0 : 1;
-    unsigned int other_index = 1 - lepton_index;
+    unsigned int hnl_index = (interaction.signature.secondary_types[0]==LI::dataclasses::ParticleType::NuF4 || interaction.signature.secondary_types[0]==LI::dataclasses::ParticleType::NuF4Bar) ? 0 : 1;
+    unsigned int other_index = 1 - hnl_index;
     double m = hnl_mass_;
 
     double m1 = interaction.primary_mass;
@@ -423,13 +470,13 @@ void DipoleDIS::SampleFinalState(dataclasses::InteractionRecord& interaction, st
     interaction.secondary_masses.resize(2);
     interaction.secondary_helicity.resize(2);
 
-    interaction.secondary_momenta[lepton_index][0] = p3.e(); // p3_energy
-    interaction.secondary_momenta[lepton_index][1] = p3.px(); // p3_x
-    interaction.secondary_momenta[lepton_index][2] = p3.py(); // p3_y
-    interaction.secondary_momenta[lepton_index][3] = p3.pz(); // p3_z
-    interaction.secondary_masses[lepton_index] = p3.m();
+    interaction.secondary_momenta[hnl_index][0] = p3.e(); // p3_energy
+    interaction.secondary_momenta[hnl_index][1] = p3.px(); // p3_x
+    interaction.secondary_momenta[hnl_index][2] = p3.py(); // p3_y
+    interaction.secondary_momenta[hnl_index][3] = p3.pz(); // p3_z
+    interaction.secondary_masses[hnl_index] = p3.m();
 
-    interaction.secondary_helicity[lepton_index] = interaction.primary_helicity;
+    interaction.secondary_helicity[hnl_index] = -1.0 * interaction.primary_helicity; // assume helicity flipping
 
     interaction.secondary_momenta[other_index][0] = p4.e(); // p4_energy
     interaction.secondary_momenta[other_index][1] = p4.px(); // p4_x
@@ -440,7 +487,7 @@ void DipoleDIS::SampleFinalState(dataclasses::InteractionRecord& interaction, st
     interaction.secondary_helicity[other_index] = interaction.target_helicity;
 }
 
-double DipoleDIS::FinalStateProbability(dataclasses::InteractionRecord const & interaction) const {
+double DipoleDISFromSpline::FinalStateProbability(dataclasses::InteractionRecord const & interaction) const {
     double dxs = DifferentialCrossSection(interaction);
     double txs = TotalCrossSection(interaction);
     if(dxs == 0) {
@@ -450,23 +497,23 @@ double DipoleDIS::FinalStateProbability(dataclasses::InteractionRecord const & i
     }
 }
 
-std::vector<LI::dataclasses::Particle::ParticleType> DipoleDIS::GetPossiblePrimaries() const {
+std::vector<LI::dataclasses::Particle::ParticleType> DipoleDISFromSpline::GetPossiblePrimaries() const {
     return std::vector<LI::dataclasses::Particle::ParticleType>(primary_types_.begin(), primary_types_.end());
 }
 
-std::vector<LI::dataclasses::Particle::ParticleType> DipoleDIS::GetPossibleTargetsFromPrimary(LI::dataclasses::Particle::ParticleType primary_type) const {
+std::vector<LI::dataclasses::Particle::ParticleType> DipoleDISFromSpline::GetPossibleTargetsFromPrimary(LI::dataclasses::Particle::ParticleType primary_type) const {
     return std::vector<LI::dataclasses::Particle::ParticleType>(target_types_.begin(), target_types_.end());
 }
 
-std::vector<dataclasses::InteractionSignature> DipoleDIS::GetPossibleSignatures() const {
+std::vector<dataclasses::InteractionSignature> DipoleDISFromSpline::GetPossibleSignatures() const {
     return std::vector<dataclasses::InteractionSignature>(signatures_.begin(), signatures_.end());
 }
 
-std::vector<LI::dataclasses::Particle::ParticleType> DipoleDIS::GetPossibleTargets() const {
+std::vector<LI::dataclasses::Particle::ParticleType> DipoleDISFromSpline::GetPossibleTargets() const {
     return std::vector<LI::dataclasses::Particle::ParticleType>(target_types_.begin(), target_types_.end());
 }
 
-std::vector<dataclasses::InteractionSignature> DipoleDIS::GetPossibleSignaturesFromParents(LI::dataclasses::Particle::ParticleType primary_type, LI::dataclasses::Particle::ParticleType target_type) const {
+std::vector<dataclasses::InteractionSignature> DipoleDISFromSpline::GetPossibleSignaturesFromParents(LI::dataclasses::Particle::ParticleType primary_type, LI::dataclasses::Particle::ParticleType target_type) const {
     std::pair<LI::dataclasses::Particle::ParticleType, LI::dataclasses::Particle::ParticleType> key(primary_type, target_type);
     if(signatures_by_parent_types_.find(key) != signatures_by_parent_types_.end()) {
         return signatures_by_parent_types_.at(key);
@@ -475,7 +522,7 @@ std::vector<dataclasses::InteractionSignature> DipoleDIS::GetPossibleSignaturesF
     }
 }
 
-std::vector<std::string> DipoleDIS::DensityVariables() const {
+std::vector<std::string> DipoleDISFromSpline::DensityVariables() const {
     return std::vector<std::string>{"Bjorken x", "Bjorken y"};
 }
 

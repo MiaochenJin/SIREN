@@ -1,6 +1,6 @@
 #pragma once
-#ifndef LI_DipoleDIS_H
-#define LI_DipoleDIS_H
+#ifndef LI_DipoleDISFromSpline_H
+#define LI_DipoleDISFromSpline_H
 
 #include <set>                                                // for set
 #include <map>                                                // for map
@@ -34,7 +34,7 @@ namespace LI { namespace utilities { class LI_random; } }
 namespace LI {
 namespace interactions {
 
-class DipoleDIS : public CrossSection {
+class DipoleDISFromSpline : public CrossSection {
 friend cereal::access;
 private:
     photospline::splinetable<> differential_cross_section_;
@@ -48,23 +48,29 @@ private:
 
     double target_mass_;
     double hnl_mass_;
+    std::vector<double> dipole_coupling_;  // d_e, d_mu, d_tau
     double minimum_Q2_;
 
     double unit;
 
 public:
-    DipoleDIS();
-    DipoleDIS(std::string differential_filename, double target_mass, double hnl_mass, double minumum_Q2, std::vector<LI::dataclasses::Particle::ParticleType> primary_types, std::vector<LI::dataclasses::Particle::ParticleType> target_types);
+    DipoleDISFromSpline();
+    DipoleDISFromSpline(std::vector<char> differential_data, std::vector<char> total_data, double hnl_mass, std::vector<double> diople_coupling, double target_mass, double minumum_Q2, std::set<LI::dataclasses::ParticleType> primary_types, std::set<LI::dataclasses::ParticleType> target_types, std::string units = "cm");
+    DipoleDISFromSpline(std::vector<char> differential_data, std::vector<char> total_data, double hnl_mass, std::vector<double> diople_coupling, double target_mass, double minumum_Q2, std::vector<LI::dataclasses::ParticleType> primary_types, std::vector<LI::dataclasses::ParticleType> target_types, std::string units = "cm");
+    DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> diople_coupling, double target_mass, double minumum_Q2, std::set<LI::dataclasses::ParticleType> primary_types, std::set<LI::dataclasses::ParticleType> target_types, std::string units = "cm");
+    DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> diople_coupling, std::set<LI::dataclasses::ParticleType> primary_types, std::set<LI::dataclasses::ParticleType> target_types, std::string units = "cm");
+    DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> diople_coupling, double target_mass, double minumum_Q2, std::vector<LI::dataclasses::ParticleType> primary_types, std::vector<LI::dataclasses::ParticleType> target_types, std::string units = "cm");
+    DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> diople_coupling, std::vector<LI::dataclasses::ParticleType> primary_types, std::vector<LI::dataclasses::ParticleType> target_types, std::string units = "cm");
     
-    void SetUnits(std::string units);
+    void Sestd::vector<double>(std::string units);
 
     virtual bool equal(CrossSection const & other) const override;
 
     double TotalCrossSection(dataclasses::InteractionRecord const &) const override;
-    double TotalCrossSection(LI::dataclasses::Particle::ParticleType primary, double energy) const;
-    double TotalCrossSection(LI::dataclasses::Particle::ParticleType primary, double energy, LI::dataclasses::Particle::ParticleType target) const override;
+    double TotalCrossSection(LI::dataclasses::Particle::ParticleType primary_type, double energy) const;
+    double TotalCrossSection(LI::dataclasses::Particle::ParticleType primary_type, double energy, LI::dataclasses::Particle::ParticleType target) const override;
     double DifferentialCrossSection(dataclasses::InteractionRecord const &) const override;
-    double DifferentialCrossSection(double energy, double x, double y, double secondary_lepton_mass, double Q2=std::numeric_limits<double>::quiet_NaN()) const;
+    double DifferentialCrossSection(LI::dataclasses::Particle::ParticleType primary_type, double energy, double x, double y, double Q2=std::numeric_limits<double>::quiet_NaN()) const;
     double InteractionThreshold(dataclasses::InteractionRecord const &) const override;
     void SampleFinalState(dataclasses::InteractionRecord &, std::shared_ptr<LI::utilities::LI_random> random) const override;
 
@@ -117,7 +123,7 @@ public:
             archive(::cereal::make_nvp("MinimumQ2", minimum_Q2_));
             archive(cereal::virtual_base_class<CrossSection>(this));
         } else {
-            throw std::runtime_error("DipoleDIS only supports version <= 0!");
+            throw std::runtime_error("DipoleDISFromSpline only supports version <= 0!");
         }
     }
     template<typename Archive>
@@ -136,7 +142,7 @@ public:
             LoadFromMemory(differential_data, total_data);
             InitializeSignatures();
         } else {
-            throw std::runtime_error("DipoleDIS only supports version <= 0!");
+            throw std::runtime_error("DipoleDISFromSpline only supports version <= 0!");
         }
     }
 private:
@@ -147,8 +153,8 @@ private:
 } // namespace interactions
 } // namespace LI
 
-CEREAL_CLASS_VERSION(LI::interactions::DipoleDIS, 0);
-CEREAL_REGISTER_TYPE(LI::interactions::DipoleDIS);
-CEREAL_REGISTER_POLYMORPHIC_RELATION(LI::interactions::CrossSection, LI::interactions::DipoleDIS);
+CEREAL_CLASS_VERSION(LI::interactions::DipoleDISFromSpline, 0);
+CEREAL_REGISTER_TYPE(LI::interactions::DipoleDISFromSpline);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(LI::interactions::CrossSection, LI::interactions::DipoleDISFromSpline);
 
-#endif // LI_DipoleDIS_H
+#endif // LI_DipoleDISFromSpline_H

@@ -5,6 +5,7 @@
 #include "../../public/LeptonInjector/interactions/NeutrissimoDecay.h"
 #include "../../public/LeptonInjector/interactions/InteractionCollection.h"
 #include "../../public/LeptonInjector/interactions/DISFromSpline.h"
+#include "../../public/LeptonInjector/interactions/DipoleDISFromSpline.h"
 #include "../../public/LeptonInjector/interactions/HNLFromSpline.h"
 #include "../../public/LeptonInjector/interactions/DipoleFromTable.h"
 #include "../../public/LeptonInjector/interactions/DarkNewsCrossSection.h"
@@ -15,6 +16,7 @@
 #include "./DarkNewsCrossSection.h"
 #include "./DarkNewsDecay.h"
 #include "./DISFromSpline.h"
+#include "./DipoleDISFromSpline.h"
 #include "./HNLFromSpline.h"
 #include "./Decay.h"
 #include "./NeutrissimoDecay.h"
@@ -38,6 +40,7 @@ PYBIND11_MODULE(interactions,m) {
     register_DarkNewsCrossSection(m);
     register_DarkNewsDecay(m);
     register_DISFromSpline(m);
+    register_DipoleDISFromSpline(m);
     register_HNLFromSpline(m);
     register_NeutrissimoDecay(m);
     register_InteractionCollection(m);
