@@ -62,7 +62,7 @@ public:
     DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> dipole_coupling, double target_mass, double minumum_Q2, std::vector<LI::dataclasses::ParticleType> primary_types, std::vector<LI::dataclasses::ParticleType> target_types, std::string units = "cm");
     DipoleDISFromSpline(std::string differential_filename, std::string total_filename, double hnl_mass, std::vector<double> dipole_coupling, std::vector<LI::dataclasses::ParticleType> primary_types, std::vector<LI::dataclasses::ParticleType> target_types, std::string units = "cm");
     
-    void SetUnits::vector<double>(std::string units);
+    void SetUnits(std::string units);
 
     virtual bool equal(CrossSection const & other) const override;
 
