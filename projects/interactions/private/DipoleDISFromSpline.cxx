@@ -20,6 +20,7 @@
 #include "LeptonInjector/dataclasses/InteractionRecord.h"  // for Interactio...
 #include "LeptonInjector/dataclasses/Particle.h"           // for Particle
 #include "LeptonInjector/utilities/Random.h"               // for LI_random
+#include "LeptonInjector/utilities/Constants.h"            // for invGeVsq_per_cmsq
 
 namespace LI {
 namespace interactions {
@@ -36,7 +37,7 @@ bool kinematicallyAllowed(double x, double y, double E, double M, double m) {
     double Q2 = 2*M*E*x*y;
     double W2 = M*M + Q2/x * (1-x);
     double Er = E*y;
-    double term = M*M - W2 - 2*x*E*M - x*x*M*M + 2*Er*(x*M + E);
+    double term = m*m - W2 - 2*x*E*M - x*x*M*M + 2*Er*(x*M + E);
     return Er*Er - W2 - term*term/(4*E*E) > 0; // equation 5
 }
 }
@@ -158,27 +159,25 @@ void DipoleDISFromSpline::ReadParamsFromSplineTable() {
     }
 
     if(!q2_good) {
-        // assume 1 GeV^2
-        minimum_Q2_ = 1;
+        // assume 2 GeV^2 // TODO: fix?
+        minimum_Q2_ = 2;
     }
 
     if(!mass_good) {
         if(int_good) {
             if(interaction_type_ == 1 or interaction_type_ == 2) {
-                target_mass_ = (LI::dataclasses::isLepton(LI::dataclasses::ParticleType::PPlus)+
-                        LI::dataclasses::isLepton(LI::dataclasses::ParticleType::Neutron))/2;
+                target_mass_ = LI::utilities::Constants::isoscalarMass;
             } else if(interaction_type_ == 3) {
-                target_mass_ = LI::dataclasses::isLepton(LI::dataclasses::ParticleType::EMinus);
+                target_mass_ = LI::utilities::Constants::electronMass;
             } else {
                 throw std::runtime_error("Logic error. Interaction type is not 1, 2, or 3!");
             }
 
         } else {
             if(differential_cross_section_.get_ndim() == 3) {
-                target_mass_ = (LI::dataclasses::isLepton(LI::dataclasses::ParticleType::PPlus)+
-                        LI::dataclasses::isLepton(LI::dataclasses::ParticleType::Neutron))/2;
+                target_mass_ = LI::utilities::Constants::isoscalarMass;
             } else if(differential_cross_section_.get_ndim() == 2) {
-                target_mass_ = LI::dataclasses::isLepton(LI::dataclasses::ParticleType::EMinus);
+                target_mass_ = LI::utilities::Constants::electronMass;
             } else {
                 throw std::runtime_error("Logic error. Spline dimensionality is not 2, or 3!");
             }
@@ -199,10 +198,10 @@ void DipoleDISFromSpline::InitializeSignatures() {
         LI::dataclasses::Particle::ParticleType neutral_lepton_product = LI::dataclasses::Particle::ParticleType::unknown;
 
         if(int(primary_type) > 0) {
-            neutral_lepton_product = LI::dataclasses::Particle::ParticleType::NuF4;
+            neutral_lepton_product = LI::dataclasses::Particle::ParticleType::N4;
         } 
         else {
-            neutral_lepton_product = LI::dataclasses::Particle::ParticleType::NuF4Bar;
+            neutral_lepton_product = LI::dataclasses::Particle::ParticleType::N4Bar;
         }
         signature.secondary_types.push_back(neutral_lepton_product);
 
@@ -252,7 +251,8 @@ double DipoleDISFromSpline::TotalCrossSection(LI::dataclasses::Particle::Particl
     else if (primary_type==LI::dataclasses::ParticleType::NuMu || primary_type==LI::dataclasses::ParticleType::NuMuBar)
         norm = std::pow(dipole_coupling_[1],2);
     else if (primary_type==LI::dataclasses::ParticleType::NuTau || primary_type==LI::dataclasses::ParticleType::NuTauBar)
-        norm = std::pow(dipole_coupling_[1],2);
+        norm = std::pow(dipole_coupling_[2],2);
+    norm /= LI::utilities::Constants::invGeVsq_per_cmsq;
 
     return norm * unit * std::pow(10.0, log_xs);
 }
@@ -298,13 +298,15 @@ double DipoleDISFromSpline::DifferentialCrossSection(LI::dataclasses::Particle::
     if(std::isnan(Q2)) {
         Q2 = 2.0 * energy * target_mass_ * x * y;
     }
-    if(Q2 < minimum_Q2_) // cross section not calculated, assumed to be zero
+    if(Q2 < minimum_Q2_) { // cross section not calculated, assumed to be zero
         return 0;
+    }
 
     // cross section should be zero, but this check is missing from the original
     // CSMS calculation, so we must add it here
-    if(!kinematicallyAllowed(x, y, energy, target_mass_, hnl_mass_))
+    if(!kinematicallyAllowed(x, y, energy, target_mass_, hnl_mass_)) {
         return 0;
+    }
 
     std::array<double,3> coordinates{{log_energy, log10(x), log10(y)}};
     std::array<int,3> centers;
@@ -318,7 +320,8 @@ double DipoleDISFromSpline::DifferentialCrossSection(LI::dataclasses::Particle::
     else if (primary_type==LI::dataclasses::ParticleType::NuMu || primary_type==LI::dataclasses::ParticleType::NuMuBar)
         norm = std::pow(dipole_coupling_[1],2);
     else if (primary_type==LI::dataclasses::ParticleType::NuTau || primary_type==LI::dataclasses::ParticleType::NuTauBar)
-        norm = std::pow(dipole_coupling_[1],2);
+        norm = std::pow(dipole_coupling_[2],2);    
+    norm /= LI::utilities::Constants::invGeVsq_per_cmsq;
     return norm * unit * result;
 }
 
@@ -477,12 +480,14 @@ void DipoleDISFromSpline::SampleFinalState(dataclasses::CrossSectionDistribution
     interaction.interaction_parameters["bjorken_x"] = final_x;
     interaction.interaction_parameters["bjorken_y"] = final_y;
 
+    // TODO: verify these calculations
+    // especially momq_lab
     double Q2 = 2 * E1_lab * E2_lab * pow(10.0, kin_vars[1] + kin_vars[2]);
     double p1x_lab = std::sqrt(p1_lab.px() * p1_lab.px() + p1_lab.py() * p1_lab.py() + p1_lab.pz() * p1_lab.pz());
     double pqx_lab = (m1*m1 + m3*m3 + 2 * p1x_lab * p1x_lab + Q2 + 2 * E1_lab * E1_lab * (final_y - 1)) / (2.0 * p1x_lab);
     double momq_lab = std::sqrt(m1*m1 + p1x_lab*p1x_lab + Q2 + E1_lab * E1_lab * (final_y * final_y - 1));
     double pqy_lab = std::sqrt(momq_lab*momq_lab - pqx_lab *pqx_lab);
-    double Eq_lab = E1_lab * final_y;
+    double Eq_lab = std::sqrt(momq_lab*momq_lab + Q2);//E1_lab * final_y;
 
     geom3::UnitVector3 x_dir = geom3::UnitVector3::xAxis();
     geom3::Vector3 p1_mom = p1_lab.momentum();

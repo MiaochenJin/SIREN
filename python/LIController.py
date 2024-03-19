@@ -151,7 +151,7 @@ class LIController:
     
 
     
-    def InputDarkNewsModel(self, primary_type, table_dir, fill_tables_at_start=False, Emax=None, **kwargs):
+    def InputDarkNewsModel(self, primary_type, table_dir, fill_tables_at_start=False, Emax=None, additional_primary_interactions=None, **kwargs):
         """
         Sets up the relevant processes and cross section/decay objects related to a provided DarkNews model dictionary.
         Will handle the primary cross section collection as well as the entire list of secondary processes
@@ -182,6 +182,9 @@ class LIController:
             if primary_type == _dataclasses.Particle.ParticleType(
                 cross_section.ups_case.nu_projectile.pdgid
             ):
+                primary_cross_sections.append(cross_section)
+        if additional_primary_interactions is not None:
+            for cross_section in additional_primary_interactions:
                 primary_cross_sections.append(cross_section)
         primary_interaction_collection = _interactions.InteractionCollection(
             primary_type, primary_cross_sections
@@ -321,7 +324,8 @@ class LIController:
         # Define stopping condition
         # TODO: make this more general
         def StoppingCondition(datum, i):
-            return True
+            if datum.depth() > 0: return True
+            return False
 
         # Define the injector object
         self.injector = _injection.Injector(
