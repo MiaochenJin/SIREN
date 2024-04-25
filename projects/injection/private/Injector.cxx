@@ -363,7 +363,7 @@ double Injector::SecondaryGenerationProbability(std::shared_ptr<LI::dataclasses:
 
 double Injector::GenerationProbability(LI::dataclasses::InteractionTree const & tree) const {
     double probability = 1.0;
-    std::set<std::shared_ptr<LI::dataclasses::InteractionTreeDatum>>::const_iterator it = tree.tree.cbegin();
+    std::vector<std::shared_ptr<LI::dataclasses::InteractionTreeDatum>>::const_iterator it = tree.tree.cbegin();
     while(it != tree.tree.cend()) {
         if((*it)->depth()==0) probability *= GenerationProbability((*it));
         else probability *= SecondaryGenerationProbability((*it));
