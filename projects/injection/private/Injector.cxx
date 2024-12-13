@@ -276,6 +276,7 @@ siren::dataclasses::InteractionRecord Injector::SampleSecondaryProcess(siren::da
     size_t tries = 0;
     size_t failed_tries = 0;
     while(true) {
+        tries += 1;
         try {
             for(auto & distribution : secondary_distributions) {
                 distribution->Sample(random, detector_model, secondary_process->GetInteractions(), secondary_record);
@@ -286,7 +287,7 @@ siren::dataclasses::InteractionRecord Injector::SampleSecondaryProcess(siren::da
             return record;
         } catch(siren::utilities::InjectionFailure const & e) {
             failed_tries += 1;
-            if(tries > max_tries) {
+            if(failed_tries > max_tries) {
                 throw(siren::utilities::InjectionFailure("Failed to generate secondary process!"));
                 break;
             }
@@ -318,7 +319,7 @@ siren::dataclasses::InteractionTree Injector::GenerateEvent() {
             break;
         } catch(siren::utilities::InjectionFailure const & e) {
             failed_tries += 1;
-            if(tries > max_tries) {
+            if(failed_tries > max_tries) {
                 throw(siren::utilities::InjectionFailure("Failed to generate primary process!"));
                 break;
             }
