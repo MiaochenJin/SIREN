@@ -1,6 +1,7 @@
 
 #include <vector>
 
+#include "../../public/SIREN/interactions/Interaction.h"
 #include "../../public/SIREN/interactions/CrossSection.h"
 #include "../../public/SIREN/interactions/NeutrissimoDecay.h"
 #include "../../public/SIREN/interactions/InteractionCollection.h"
@@ -13,6 +14,7 @@
 #include "../../public/SIREN/interactions/CharmMesonDecay.h"
 #include "../../public/SIREN/interactions/DMesonELoss.h"
 
+#include "./Interaction.h"
 #include "./CrossSection.h"
 #include "./DipoleFromTable.h"
 #include "./DarkNewsCrossSection.h"
@@ -38,6 +40,7 @@ using namespace pybind11;
 PYBIND11_MODULE(interactions,m) {
     using namespace siren::interactions;
 
+    register_Interaction(m);
     register_CrossSection(m);
     register_Decay(m);
     register_DipoleFromTable(m);
