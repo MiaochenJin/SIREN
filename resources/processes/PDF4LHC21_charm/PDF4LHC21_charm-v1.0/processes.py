@@ -78,6 +78,10 @@ def _get_process_types(process_types):
 def load_processes(
     primary_types: Optional[List[siren.dataclasses.Particle.ParticleType]] = None,
     target_types: Optional[List[siren.dataclasses.Particle.ParticleType]] = None,
+    interaction_type: Optional[int] = None,
+    quark_type: Optional[int] = None,
+    target_mass: Optional[float] = None,
+    min_q2: Optional[float] = None,
     isoscalar: Optional[bool] = None,
     process_types: Optional[List[str]] = None,
     ):
@@ -98,7 +102,9 @@ def load_processes(
             if not isoscalar:
                 dxs_file = os.path.join(base_path, f"dsdxdy_{nunubar}-N-{process_type}-charm-PDF4LHC21_mc_central.fits")
                 xs_file = os.path.join(base_path, f"sigma_{nunubar}-N-{process_type}-charm-PDF4LHC21_mc_central.fits")
-                xs = siren.interactions.QuarkDISFromSpline(dxs_file, xs_file, primaries, target_types, "m")
+                xs = siren.interactions.QuarkDISFromSpline(dxs_file, xs_file, \
+                                interaction_type, quark_type, target_mass, min_q2, \
+                                primaries, target_types, "m")
                 primary_processes.append(xs)
                 for primary_type in primaries:
                     primary_processes_dict[primary_type].append(xs)
