@@ -1,15 +1,14 @@
 #pragma once
-#ifndef SIREN_QuarkDISFromSpline_H
-#define SIREN_QuarkDISFromSpline_H
+#ifndef SIREN_PythiaDISCrossSection_H
+#define SIREN_PythiaDISCrossSection_H
 
-#include <set>                                                // for set
-#include <map>                                                // for map
+#include <set>
+#include <map>
 #include <memory>
-#include <vector>                                             // for vector
-#include <cstdint>                                            // for uint32_t
-#include <utility>                                            // for pair
-#include <algorithm>
-#include <stdexcept>                                          // for runtime...
+#include <vector>
+#include <cstdint>
+#include <utility>
+#include <string>
 
 #include <cereal/cereal.hpp>
 #include <cereal/archives/json.hpp>
@@ -24,11 +23,14 @@
 #include <photospline/splinetable.h>
 #include <photospline/cinter/splinetable.h>
 
-#include "SIREN/interactions/CrossSection.h"        // for CrossSe...
-#include "SIREN/dataclasses/InteractionSignature.h"  // for Interac...
-#include "SIREN/dataclasses/Particle.h"              // for Particle
-#include "SIREN/utilities/Interpolator.h"
-#include "SIREN/utilities/Integration.h"
+#include "SIREN/interactions/CrossSection.h"
+#include "SIREN/dataclasses/InteractionSignature.h"
+#include "SIREN/dataclasses/Particle.h"
+
+// Forward declarations for Pythia
+namespace Pythia8 {
+    class Pythia;
+}
 
 namespace siren { namespace dataclasses { class InteractionRecord; } }
 namespace siren { namespace utilities { class SIREN_random; } }
@@ -36,48 +38,89 @@ namespace siren { namespace utilities { class SIREN_random; } }
 namespace siren {
 namespace interactions {
 
-class QuarkDISFromSpline : public CrossSection {
+// Forward declaration — defined in .cxx
+class SIRENRndm;
+
+class PythiaDISCrossSection : public CrossSection {
 friend cereal::access;
 private:
+    // Splines for total/differential cross section (SIREN weighting)
     photospline::splinetable<> differential_cross_section_;
     photospline::splinetable<> total_cross_section_;
 
+    // Pythia instance (mutable because SampleFinalState is const)
+    mutable std::unique_ptr<Pythia8::Pythia> pythia_;
+    mutable bool pythia_initialized_ = false;
+    mutable std::shared_ptr<SIRENRndm> siren_rndm_;
+
+    // Signature bookkeeping
     std::vector<dataclasses::InteractionSignature> signatures_;
     std::set<siren::dataclasses::ParticleType> primary_types_;
     std::set<siren::dataclasses::ParticleType> target_types_;
     std::map<siren::dataclasses::ParticleType, std::vector<siren::dataclasses::ParticleType>> targets_by_primary_types_;
     std::map<std::pair<siren::dataclasses::ParticleType, siren::dataclasses::ParticleType>, std::vector<dataclasses::InteractionSignature>> signatures_by_parent_types_;
     std::set<siren::dataclasses::ParticleType> D_types_;
-    
-    // used by the DIS process
-    int interaction_type_;
-    int quark_type_;
+
+    // DIS parameters
+    int interaction_type_;  // 1=CC, 2=NC
     double target_mass_;
     double minimum_Q2_;
-
-    // used by the hadronization process
-    double fragmentation_integral = 0; // for storing the integrated unnormed pdf
-    void normalize_pdf(); // for normalizing pdf and integral, to be called at initialization
-    siren::utilities::Interpolator1D<double> inverseCdfTable; // for storing the CDF-1 table for the hadronization
-    
     double unit;
 
-public:
-    QuarkDISFromSpline();
-    QuarkDISFromSpline(std::vector<char> differential_data, std::vector<char> total_data, int interaction, int quark_type, double target_mass, double minumum_Q2, std::set<siren::dataclasses::ParticleType> primary_types, std::set<siren::dataclasses::ParticleType> target_types, std::string units = "cm");
-    QuarkDISFromSpline(std::vector<char> differential_data, std::vector<char> total_data, int interaction, int quark_type, double target_mass, double minumum_Q2, std::vector<siren::dataclasses::ParticleType> primary_types, std::vector<siren::dataclasses::ParticleType> target_types, std::string units = "cm");
-    QuarkDISFromSpline(std::string differential_filename, std::string total_filename, int interaction, int quark_type, double target_mass, double minumum_Q2, std::set<siren::dataclasses::ParticleType> primary_types, std::set<siren::dataclasses::ParticleType> target_types, std::string units = "cm");
-    QuarkDISFromSpline(std::string differential_filename, std::string total_filename, std::set<siren::dataclasses::ParticleType> primary_types, std::set<siren::dataclasses::ParticleType> target_types, std::string units = "cm");
-    QuarkDISFromSpline(std::string differential_filename, std::string total_filename, int interaction, int quark_type, double target_mass, double minumum_Q2, std::vector<siren::dataclasses::ParticleType> primary_types, std::vector<siren::dataclasses::ParticleType> target_types, std::string units = "cm");
-    QuarkDISFromSpline(std::string differential_filename, std::string total_filename, std::vector<siren::dataclasses::ParticleType> primary_types, std::vector<siren::dataclasses::ParticleType> target_types, std::string units = "cm");
-    
+    // Pythia configuration
+    std::string pdf_set_;
+    std::string pythia_data_path_;
+
+    // Helper methods
+    void InitializePythia(double E_nu) const;
+    void InitializeSignatures();
+    void LoadFromFile(std::string differential_filename, std::string total_filename);
+    void LoadFromMemory(std::vector<char> & differential_data, std::vector<char> & total_data);
+    void ReadParamsFromSplineTable();
     void SetUnits(std::string units);
-    void SetInteractionType(int interaction);
-    void SetQuarkType(int q_type);
+
+    // Particle ID helpers
+    static bool IsCharmedHadron(int pdgId);
+    static siren::dataclasses::ParticleType PdgToParticleType(int pdgId);
+    static double GetLeptonMass(siren::dataclasses::ParticleType lepton_type);
+    static double GetHadronMass(siren::dataclasses::ParticleType hadron_type);
+    static std::map<std::string, int> getIndices(siren::dataclasses::InteractionSignature signature);
+
+public:
+    PythiaDISCrossSection();
+    ~PythiaDISCrossSection();
+
+    // Main constructor
+    PythiaDISCrossSection(
+        std::string differential_filename,
+        std::string total_filename,
+        int interaction_type,
+        double target_mass,
+        double minimum_Q2,
+        std::set<siren::dataclasses::ParticleType> primary_types,
+        std::set<siren::dataclasses::ParticleType> target_types,
+        std::string pythia_data_path,
+        std::string pdf_set = "LHAPDF6:HERAPDF20_NLO_EIG",
+        std::string units = "cm"
+    );
+
+    // Constructor with vectors
+    PythiaDISCrossSection(
+        std::string differential_filename,
+        std::string total_filename,
+        int interaction_type,
+        double target_mass,
+        double minimum_Q2,
+        std::vector<siren::dataclasses::ParticleType> primary_types,
+        std::vector<siren::dataclasses::ParticleType> target_types,
+        std::string pythia_data_path,
+        std::string pdf_set = "LHAPDF6:HERAPDF20_NLO_EIG",
+        std::string units = "cm"
+    );
 
     virtual bool equal(CrossSection const & other) const override;
 
-    // function definitions needed to compute the DIS vertex
+    // Cross section from splines
     double TotalCrossSection(dataclasses::InteractionRecord const &) const override;
     double TotalCrossSection(siren::dataclasses::ParticleType primary, double energy) const;
     double TotalCrossSectionAllFinalStates(dataclasses::InteractionRecord const &) const override;
@@ -85,35 +128,27 @@ public:
     double DifferentialCrossSection(double energy, double x, double y, double secondary_lepton_mass, double Q2=std::numeric_limits<double>::quiet_NaN()) const;
     double InteractionThreshold(dataclasses::InteractionRecord const &) const override;
 
-    // function definitions needed to compute the hadronization vertex
+    // Fragmentation fraction (from Pythia output statistics)
     double FragmentationFraction(siren::dataclasses::Particle::ParticleType secondary) const;
-    double sample_pdf(double z) const;
-    void compute_cdf();
-    static double getHadronMass(siren::dataclasses::ParticleType hadron_type);
 
-    // used for both processes
+    // Final state sampling via Pythia
     void SampleFinalState(dataclasses::CrossSectionDistributionRecord &, std::shared_ptr<siren::utilities::SIREN_random> random) const override;
+
+    // Signature methods
     std::vector<siren::dataclasses::ParticleType> GetPossibleTargets() const override;
     std::vector<siren::dataclasses::ParticleType> GetPossibleTargetsFromPrimary(siren::dataclasses::ParticleType primary_type) const override;
     std::vector<siren::dataclasses::ParticleType> GetPossiblePrimaries() const override;
     std::vector<dataclasses::InteractionSignature> GetPossibleSignatures() const override;
     std::vector<dataclasses::InteractionSignature> GetPossibleSignaturesFromParents(siren::dataclasses::ParticleType primary_type, siren::dataclasses::ParticleType target_type) const override;
     virtual double FinalStateProbability(dataclasses::InteractionRecord const & record) const override;
+    virtual std::vector<std::string> DensityVariables() const override;
 
-    // other utility functions
-    void LoadFromFile(std::string differential_filename, std::string total_filename);
-    void LoadFromMemory(std::vector<char> & differential_data, std::vector<char> & total_data);
-
-    // utilities for DIS parametrs
-    double GetMinimumQ2() const {return minimum_Q2_;};
-    double GetTargetMass() const {return target_mass_;};
-    int GetInteractionType() const {return interaction_type_;};
-    static double GetLeptonMass(siren::dataclasses::ParticleType lepton_type);
-    static std::map<std::string, int> getIndices(siren::dataclasses::InteractionSignature signature);
-
+    // Getters
+    double GetMinimumQ2() const { return minimum_Q2_; }
+    double GetTargetMass() const { return target_mass_; }
+    int GetInteractionType() const { return interaction_type_; }
 
 public:
-    virtual std::vector<std::string> DensityVariables() const override;
     template<typename Archive>
     void save(Archive & archive, std::uint32_t const version) const {
         if(version == 0) {
@@ -145,9 +180,11 @@ public:
             archive(::cereal::make_nvp("TargetMass", target_mass_));
             archive(::cereal::make_nvp("MinimumQ2", minimum_Q2_));
             archive(::cereal::make_nvp("Unit", unit));
+            archive(::cereal::make_nvp("PdfSet", pdf_set_));
+            archive(::cereal::make_nvp("PythiaDataPath", pythia_data_path_));
             archive(cereal::virtual_base_class<CrossSection>(this));
         } else {
-            throw std::runtime_error("QuarkDISFromSpline only supports version <= 0!");
+            throw std::runtime_error("PythiaDISCrossSection only supports version <= 0!");
         }
     }
     template<typename Archive>
@@ -163,23 +200,22 @@ public:
             archive(::cereal::make_nvp("TargetMass", target_mass_));
             archive(::cereal::make_nvp("MinimumQ2", minimum_Q2_));
             archive(::cereal::make_nvp("Unit", unit));
+            archive(::cereal::make_nvp("PdfSet", pdf_set_));
+            archive(::cereal::make_nvp("PythiaDataPath", pythia_data_path_));
             archive(cereal::virtual_base_class<CrossSection>(this));
             LoadFromMemory(differential_data, total_data);
             InitializeSignatures();
         } else {
-            throw std::runtime_error("QuarkDISFromSpline only supports version <= 0!");
+            throw std::runtime_error("PythiaDISCrossSection only supports version <= 0!");
         }
     }
-private:
-    void ReadParamsFromSplineTable();
-    void InitializeSignatures();
 };
 
 } // namespace interactions
 } // namespace siren
 
-CEREAL_CLASS_VERSION(siren::interactions::QuarkDISFromSpline, 0);
-CEREAL_REGISTER_TYPE(siren::interactions::QuarkDISFromSpline);
-CEREAL_REGISTER_POLYMORPHIC_RELATION(siren::interactions::CrossSection, siren::interactions::QuarkDISFromSpline);
+CEREAL_CLASS_VERSION(siren::interactions::PythiaDISCrossSection, 0);
+CEREAL_REGISTER_TYPE(siren::interactions::PythiaDISCrossSection);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(siren::interactions::CrossSection, siren::interactions::PythiaDISCrossSection);
 
-#endif // SIREN_QuarkDISFromSpline_H
+#endif // SIREN_PythiaDISCrossSection_H

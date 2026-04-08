@@ -450,6 +450,12 @@ double QuarkDISFromSpline::TotalCrossSection(dataclasses::InteractionRecord cons
         std::cout << "DIS::interaction threshold not satisfied" << std::endl;
         return 0;
     }
+
+    //check of the signature of what the final state hadron is
+    //there should be fragmentation fraction 
+    //multiply with fragmentation fraction for dmeson final state 
+    //the overloaded function needs fragmentation fraction. 
+
     return TotalCrossSection(primary_type, primary_energy);
 }
 
@@ -476,6 +482,14 @@ double QuarkDISFromSpline::TotalCrossSection(siren::dataclasses::ParticleType pr
     }
 
     return unit * std::pow(10.0, log_xs);
+}
+
+double QuarkDISFromSpline::TotalCrossSectionAllFinalStates(dataclasses::InteractionRecord const & record) const {
+    // The total cross section spline already represents the full charm production
+    // cross section, not a per-meson-type cross section. Override the base class
+    // implementation which would sum TotalCrossSection once per signature (D0, DPlus),
+    // double-counting.
+    return TotalCrossSection(record);
 }
 
 double QuarkDISFromSpline::DifferentialCrossSection(dataclasses::InteractionRecord const & interaction) const {

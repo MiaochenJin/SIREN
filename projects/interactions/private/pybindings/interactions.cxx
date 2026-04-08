@@ -15,6 +15,7 @@
 #include "../../public/SIREN/interactions/CharmHadronization.h"
 #include "../../public/SIREN/interactions/CharmMesonDecay.h"
 #include "../../public/SIREN/interactions/DMesonELoss.h"
+#include "../../public/SIREN/interactions/PythiaDISCrossSection.h"
 
 #include "./CrossSection.h"
 #include "./DipoleFromTable.h"
@@ -32,6 +33,7 @@
 #include "./CharmHadronization.h"
 #include "./CharmMesonDecay.h"
 #include "./DMesonELoss.h"
+#include "./PythiaDISCrossSection.h"
 
 #include <pybind11/pybind11.h>
 #include <pybind11/operators.h>
@@ -62,4 +64,5 @@ PYBIND11_MODULE(interactions,m) {
     register_NeutrissimoDecay(m);
     register_InteractionCollection(m);
     register_DummyCrossSection(m);
+    register_PythiaDISCrossSection(m);
 }

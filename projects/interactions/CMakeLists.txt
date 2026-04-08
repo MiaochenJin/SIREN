@@ -22,6 +22,7 @@ LIST (APPEND interactions_SOURCES
     ${PROJECT_SOURCE_DIR}/projects/interactions/private/CharmMesonDecay.cxx
     ${PROJECT_SOURCE_DIR}/projects/interactions/private/DMesonELoss.cxx
     ${PROJECT_SOURCE_DIR}/projects/interactions/private/QuarkDISFromSpline.cxx
+    ${PROJECT_SOURCE_DIR}/projects/interactions/private/PythiaDISCrossSection.cxx
 
 )
 add_library(SIREN_interactions OBJECT ${interactions_SOURCES})
@@ -30,6 +31,15 @@ target_include_directories(SIREN_interactions PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/projects/interactions/public/>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/SIREN/interactions/>
     ${PYTHON_INCLUDE_DIRS}
+)
+
+# Pythia8 and LHAPDF for PythiaDISCrossSection
+set(PYTHIA8_DIR "/n/holylfs05/LABS/arguelles_delgado_lab/Everyone/pzhelnin/PYTHIA/install_gcc13")
+set(LHAPDF_DIR "/n/holylfs05/LABS/arguelles_delgado_lab/Everyone/pzhelnin/LHAPDF/new_install")
+
+target_include_directories(SIREN_interactions PUBLIC
+    ${PYTHIA8_DIR}/include
+    ${LHAPDF_DIR}/include
 )
 
 target_link_libraries(SIREN_interactions
@@ -45,6 +55,9 @@ target_link_libraries(SIREN_interactions
         SIREN_detector
 )
 
+target_link_directories(SIREN_interactions PUBLIC ${PYTHIA8_DIR}/lib ${LHAPDF_DIR}/lib)
+target_link_libraries(SIREN_interactions PUBLIC pythia8 LHAPDF)
+
 install(DIRECTORY "${PROJECT_SOURCE_DIR}/projects/interactions/public/"
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     FILES_MATCHING
@@ -57,7 +70,8 @@ package_add_test(UnitTest_DipoleFromTable ${PROJECT_SOURCE_DIR}/projects/interac
 #package_add_test(UnitTest_ElasticScattering ${PROJECT_SOURCE_DIR}/projects/interactions/private/test/ElasticScattering_TEST.cxx)
 
 pybind11_add_module(interactions ${PROJECT_SOURCE_DIR}/projects/interactions/private/pybindings/interactions.cxx)
-target_link_libraries(interactions PRIVATE SIREN photospline rk_static pybind11::embed)
+target_link_libraries(interactions PRIVATE SIREN photospline rk_static pybind11::embed pythia8 LHAPDF)
+target_link_directories(interactions PRIVATE ${PYTHIA8_DIR}/lib ${LHAPDF_DIR}/lib)
 #pybind11_add_module(pyDarkNewsSerializer ${PROJECT_SOURCE_DIR}/projects/interactions/private/pybindings/pyDarkNewsSerializer.cxx)
 #target_link_libraries(pyDarkNewsSerializer PRIVATE SIREN photospline rk_static pybind11::embed)
 if(DEFINED SKBUILD)

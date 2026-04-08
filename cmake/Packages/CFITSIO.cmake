@@ -19,7 +19,7 @@ IF (NOT CFITSIO_FOUND)
 
   # Search user environment for headers, then default paths; extract version
   FIND_PATH (CFITSIO_INCLUDE_DIR fitsio.h
-    PATHS $ENV{CFITSIOROOT}/include
+    PATHS $ENV{CFITSIOROOT}/include /n/holylfs05/LABS/arguelles_delgado_lab/Everyone/pzhelnin/DiMuons/local/include
     NO_DEFAULT_PATH)
   FIND_PATH (CFITSIO_INCLUDE_DIR fitsio.h)
   if(CFITSIO_INCLUDE_DIR)
@@ -40,7 +40,7 @@ IF (NOT CFITSIO_FOUND)
 
   # Search user environment for libraries, then default paths
   FIND_LIBRARY (CFITSIO_LIBRARIES NAMES cfitsio
-    PATHS $ENV{CFITSIOROOT}/lib
+    PATHS $ENV{CFITSIOROOT}/lib /n/holylfs05/LABS/arguelles_delgado_lab/Everyone/pzhelnin/DiMuons/local/lib
     NO_DEFAULT_PATH)
   FIND_LIBRARY (CFITSIO_LIBRARIES NAMES cfitsio)
   GET_FILENAME_COMPONENT (CFITSIO_LIB_DIR ${CFITSIO_LIBRARIES} PATH)
